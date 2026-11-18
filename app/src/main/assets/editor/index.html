@@ -118,6 +118,49 @@
   .bk-keypad button { height: 48px; font-size: 18px; font-family: var(--mono); }
   .bk-kpv { grid-column: 1 / -1; font-family: var(--mono); font-size: 22px; text-align: right; padding: 6px 10px; background: var(--bg); border-radius: 6px; color: var(--num); }
   #modal .box.wide { min-width: 360px; }
+  #modal .box { max-height: 92vh; overflow: auto; }
+
+  /* scene preview */
+  .bk-preview { position: relative; width: 100%; max-width: 460px; background: #000; border-radius: 8px; overflow: hidden; touch-action: none; }
+  .pv-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+  .pv-hs { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 9px; color: #fff; text-shadow: 0 1px 2px #000; cursor: grab; box-sizing: border-box; overflow: hidden; }
+  .pv-hs img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+  .pv-hs span { position: relative; z-index: 1; }
+  .pv-hs.sel { outline: 2px solid #fff; box-shadow: 0 0 0 3px rgba(61,214,198,.6); }
+  .pv-hs.ghost { opacity: .35; }
+  .bk-selected { outline: 2px solid var(--acc); }
+  .bk-scenebar { padding: 4px 0; }
+
+  /* Scratch-style blocks */
+  .scr { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 14px; }
+  .blk { color: #fff; border-radius: 10px; padding: 6px 8px; margin: 3px 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 0 rgba(0,0,0,.35); max-width: 100%; box-sizing: border-box; }
+  .blk.hat { background: #ffbf00; color: #1a1400; border-radius: 22px 22px 10px 10px; flex-direction: row; align-items: center; gap: 8px; padding: 10px 12px; min-width: 220px; }
+  .blk-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .blk .chip { background: #fff; color: #222; border: 0; border-radius: 14px; padding: 4px 10px; font: inherit; font-weight: 500; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .blk .chip.chip-text { background: #fff7d6; }
+  .blk .chip.chip-cond { background: #e9f5e9; border-radius: 6px; }
+  .blk .blk-menu, .blk.hat .blk-menu { background: rgba(0,0,0,.2); color: inherit; border: 0; border-radius: 6px; padding: 2px 8px; margin-left: auto; font-size: 14px; }
+  .stack { display: flex; flex-direction: column; align-items: flex-start; padding-left: 14px; border-left: 4px solid rgba(255,255,255,.25); margin: 2px 0 2px 6px; min-width: 120px; }
+  .scr > .stack { border-left-color: var(--line); margin-left: 10px; }
+  .blk-add { background: var(--panel2); color: var(--acc); border: 1px dashed var(--acc); border-radius: 8px; padding: 2px 14px; font-size: 16px; line-height: 1; margin: 3px 0; }
+  .blk-sub { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; opacity: .85; margin-top: 2px; }
+  .blk-optrow { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .blk-mini { background: rgba(255,255,255,.2); color: #fff; border: 0; border-radius: 8px; padding: 3px 10px; font-size: 12px; align-self: flex-start; }
+  .cblk { padding-bottom: 8px; }
+
+  /* palette */
+  .pal { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow: auto; }
+  .pal-cat { border-left: 4px solid; padding-left: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .pal-title { width: 100%; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  .pal-blk { color: #fff; border: 0; border-radius: 10px; padding: 6px 10px; font-weight: 600; font-size: 12px; text-align: left; }
+  .hat-pick { background: #ffbf00 !important; color: #1a1400 !important; border-radius: 16px 16px 6px 6px !important; font-weight: 600; }
+
+  /* built-in text keyboard */
+  .tk { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; user-select: none; }
+  .tk-row { display: flex; gap: 4px; }
+  .tk-k { flex: 1; height: 38px; font-size: 15px; padding: 0; min-width: 0; }
+  .tk-k.tk-space { flex: 5; }
+  .tk-k.on { background: var(--acc); color: #0b0f14; }
   .bk-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; background: #000; }
   .bk-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 50vh; overflow: auto; margin-bottom: 8px; }
   .bk-mediabtn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; }
@@ -167,7 +210,7 @@
 
 <div id="modal"><div class="box" id="modalBox"></div></div>
 
-<script src="blocks.js"></script>
+<script src="adv.js"></script>
 <script src="nav.js"></script>
 <script>
 /* ============================================================ bridge */
@@ -245,21 +288,21 @@ function loadFiles() {
   active = localStorage['__active_' + project];
   if (!open.includes(active)) active = open[0] || null;
   renderTabs(); showFile(active);
-  setMode(files.includes('game.json') ? 'blocks' : 'code');
+  setMode(files.includes('adventure.json') ? 'blocks' : 'code');
 }
 
 /* ---------------- blocks / code mode */
 let mode = 'code';
 function setMode(m) {
   mode = m;
-  const blocksOk = files.includes('game.json');
+  const blocksOk = files.includes('adventure.json');
   $('btnMode').style.display = blocksOk ? '' : 'none';
   $('btnMode').textContent = m === 'blocks' ? 'Code' : 'Blocks';
   $('btnMode').classList.toggle('blocks', m === 'blocks');
   $('editor').style.display = m === 'blocks' ? 'none' : '';
   $('tabs').style.display = m === 'blocks' ? 'none' : '';
   $('btnKbd').style.display = m === 'blocks' ? 'none' : '';
-  if (m === 'blocks') { $('kbd').classList.remove('on'); ThorBlocks.open(project, Native.read(project, 'game.json')); $('blocksHost').appendChild(ThorBlocks.element); ThorBlocks.element.classList.add('on'); }
+  if (m === 'blocks') { $('kbd').classList.remove('on'); ThorBlocks.open(project, Native.read(project, 'adventure.json')); $('blocksHost').appendChild(ThorBlocks.element); ThorBlocks.element.classList.add('on'); }
   else { ThorBlocks.element.classList.remove('on'); ThorBlocks.close(); if (active) showFile(active); }
 }
 $('btnMode').onclick = () => setMode(mode === 'blocks' ? 'code' : 'blocks');
@@ -274,7 +317,7 @@ window.ThorNav = {
   nextTab() { if (mode === 'blocks') ThorBlocks.nextPanel(1); else if (open.length) showFile(open[(open.indexOf(active) + 1) % open.length]); },
   prevTab() { if (mode === 'blocks') ThorBlocks.nextPanel(-1); else if (open.length) showFile(open[(open.indexOf(active) - 1 + open.length) % open.length]); },
   run: () => doRun(),
-  toggleMode() { if (files.includes('game.json')) setMode(mode === 'blocks' ? 'code' : 'blocks'); },
+  toggleMode() { if (files.includes('adventure.json')) setMode(mode === 'blocks' ? 'code' : 'blocks'); },
   keyboard() { if (mode === 'code') $('btnKbd').click(); },
 };
 
@@ -481,10 +524,10 @@ $('evalIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnEv
 
 /* ---------------- actions */
 function generateIfBlocks() {
-  if (!files.includes('game.json')) return true;
-  const engine = Native.readAsset('engine/engine.js');
-  if (!engine) { Native.toast('engine.js asset missing'); return false; }
-  if (!ThorBlocks.isOpen()) ThorBlocks.open(project, Native.read(project, 'game.json'));
+  if (!files.includes('adventure.json')) return true;
+  const engine = Native.readAsset('engine/adventure.js');
+  if (!engine) { Native.toast('adventure.js asset missing'); return false; }
+  if (!ThorBlocks.isOpen()) ThorBlocks.open(project, Native.read(project, 'adventure.json'));
   const out = ThorBlocks.generate(engine);
   for (const f in out) { Native.write(project, f, out[f]); if (!files.includes(f)) files.push(f); delete drafts[f]; dirty.delete(f); }
   files.sort();
@@ -549,7 +592,7 @@ $('btnProjMenu').onclick = () => {
   });
 };
 function newProjectDialog() {
-  showModal('<h3>New project</h3><input id="pn" placeholder="name (letters, digits, - _ .)"><select id="pt"><option value="game">Block game (no typing: sprites + events, both screens)</option><option value="dual">Dual-screen web app (index.html + bottom.html)</option><option value="blank">Blank single page</option></select>'
+  showModal('<h3>New project</h3><input id="pn" placeholder="name (letters, digits, - _ .)"><select id="pt"><option value="adventure">Point-and-click adventure (blocks, no typing needed)</option><option value="dual">Dual-screen web app (index.html + bottom.html)</option><option value="blank">Blank single page</option></select>'
     + '<div class="row"><button id="ok" class="acc">Create</button><button id="cl">Cancel</button></div>', () => {
     $('cl').onclick = closeModal; $('pn').focus();
     $('ok').onclick = () => { const n = $('pn').value.trim(); if (!/^[A-Za-z0-9._-]{1,64}$/.test(n)) { Native.toast('Invalid name'); return; }
@@ -567,7 +610,7 @@ $('btnMore').onclick = () => {
   });
 };
 const HELP = `<h3>Dual-screen apps</h3><p class="muted" style="font-size:12px;line-height:1.5">
-<b>Block games</b> (projects with game.json) are built in the Blocks view without typing: sprites, variables and WHEN/AND/DO events. Run generates index.html, bottom.html and engine.js. Controller: D-pad/left stick moves the focus, A selects, B back, L1/R1 switch panels, START runs, SELECT toggles Blocks/Code.<br><br>
+<b>Adventures</b> (projects with adventure.json) are built in the Blocks view: scenes with things to tap, Scratch-style blocks (say, show picture, ask, if, go to scene, give item…), variables and items. Run generates index.html, bottom.html and adventure.js. Top screen = the scene, bottom screen = dialog, choices and inventory. Controller: D-pad moves the focus, A selects, B back, L1/R1 switch panels, START runs, SELECT toggles Blocks/Code.<br><br>
 A project is plain HTML/CSS/JS. <b>index.html</b> runs on the top screen, <b>bottom.html</b> on the bottom screen.<br><br>
 <b>Run</b> reloads index.html on the other screen while you keep editing.<br>
 <b>Dual</b> runs both pages full-screen; press the floating "Editor" button or Back to return.<br><br>

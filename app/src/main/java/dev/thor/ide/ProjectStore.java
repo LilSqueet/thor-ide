@@ -70,7 +70,7 @@ public class ProjectStore {
     /** First launch: seed the sample projects so the IDE isn't empty. */
     public void ensureSamples(AssetManager assets) {
         if (listProjects().length() > 0) return;
-        createProject("dodge", "game", assets);
+        createProject("my-adventure", "adventure", assets);
         createProject("hello-dual", "dual", assets);
         createProject("blank", "blank", assets);
     }

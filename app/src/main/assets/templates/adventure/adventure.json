@@ -1,0 +1,318 @@
+{
+  "start": "room",
+  "vars": {
+    "talkedToCat": 0
+  },
+  "items": [
+    {
+      "id": "key",
+      "label": "Brass key",
+      "image": ""
+    }
+  ],
+  "globalScripts": [],
+  "scenes": [
+    {
+      "id": "room",
+      "name": "The Room",
+      "background": {
+        "color": "#2b3a4a",
+        "image": ""
+      },
+      "hotspots": [
+        {
+          "id": "door",
+          "label": "Door",
+          "x": 1550,
+          "y": 560,
+          "w": 220,
+          "h": 460,
+          "color": "#8b5a2b",
+          "image": "",
+          "visible": true
+        },
+        {
+          "id": "cat",
+          "label": "Cat",
+          "x": 700,
+          "y": 820,
+          "w": 180,
+          "h": 140,
+          "color": "#f5b942",
+          "image": "",
+          "visible": true
+        },
+        {
+          "id": "rug",
+          "label": "Rug",
+          "x": 1000,
+          "y": 950,
+          "w": 600,
+          "h": 120,
+          "color": "#3a5f3a",
+          "image": "",
+          "visible": true
+        },
+        {
+          "id": "key",
+          "label": "Key",
+          "x": 1000,
+          "y": 930,
+          "w": 70,
+          "h": 40,
+          "color": "#c3e88d",
+          "image": "",
+          "visible": false
+        }
+      ],
+      "scripts": [
+        {
+          "when": {
+            "type": "start"
+          },
+          "blocks": [
+            {
+              "type": "say",
+              "text": {
+                "s": "You wake up in a quiet room. There is a door, a rug, and a cat."
+              },
+              "who": "narrator"
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "tap",
+            "hotspot": "cat"
+          },
+          "blocks": [
+            {
+              "type": "change",
+              "name": "talkedToCat",
+              "value": {
+                "n": 1
+              }
+            },
+            {
+              "type": "if",
+              "cond": {
+                "type": "var",
+                "name": "talkedToCat",
+                "op": "=",
+                "value": {
+                  "n": 1
+                }
+              },
+              "then": [
+                {
+                  "type": "say",
+                  "text": {
+                    "s": "Meow. (The cat glances at the rug.)"
+                  },
+                  "who": "cat"
+                }
+              ],
+              "else": [
+                {
+                  "type": "say",
+                  "text": {
+                    "s": "Meow meow. (It is definitely looking at the rug.)"
+                  },
+                  "who": "cat"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "tap",
+            "hotspot": "rug"
+          },
+          "blocks": [
+            {
+              "type": "if",
+              "cond": {
+                "type": "visible",
+                "hotspot": "key"
+              },
+              "then": [
+                {
+                  "type": "say",
+                  "text": {
+                    "s": "Just a rug now."
+                  },
+                  "who": "narrator"
+                }
+              ],
+              "else": [
+                {
+                  "type": "say",
+                  "text": {
+                    "s": "You lift the rug. Something glints underneath!"
+                  },
+                  "who": "narrator"
+                },
+                {
+                  "type": "showHotspot",
+                  "hotspot": "key"
+                },
+                {
+                  "type": "beep",
+                  "freq": {
+                    "n": 880
+                  },
+                  "ms": {
+                    "n": 120
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "tap",
+            "hotspot": "key"
+          },
+          "blocks": [
+            {
+              "type": "give",
+              "item": "key"
+            },
+            {
+              "type": "hideHotspot",
+              "hotspot": "key"
+            },
+            {
+              "type": "say",
+              "text": {
+                "s": "A small brass key. It must open something."
+              },
+              "who": "narrator"
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "tap",
+            "hotspot": "door"
+          },
+          "blocks": [
+            {
+              "type": "choice",
+              "question": {
+                "s": "The door is locked. What do you do?"
+              },
+              "options": [
+                {
+                  "text": {
+                    "s": "Knock"
+                  },
+                  "blocks": [
+                    {
+                      "type": "say",
+                      "text": {
+                        "s": "Nobody answers."
+                      },
+                      "who": "narrator"
+                    }
+                  ]
+                },
+                {
+                  "text": {
+                    "s": "Look around"
+                  },
+                  "blocks": [
+                    {
+                      "type": "say",
+                      "text": {
+                        "s": "Maybe the cat knows something."
+                      },
+                      "who": "narrator"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "use",
+            "item": "key",
+            "hotspot": "door"
+          },
+          "blocks": [
+            {
+              "type": "say",
+              "text": {
+                "s": "Click! The door swings open."
+              },
+              "who": "narrator"
+            },
+            {
+              "type": "take",
+              "item": "key"
+            },
+            {
+              "type": "goto",
+              "scene": "garden"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "garden",
+      "name": "The Garden",
+      "background": {
+        "color": "#3a5f3a",
+        "image": ""
+      },
+      "hotspots": [
+        {
+          "id": "gate",
+          "label": "Gate",
+          "x": 960,
+          "y": 600,
+          "w": 300,
+          "h": 400,
+          "color": "#8b5a2b",
+          "image": "",
+          "visible": true
+        }
+      ],
+      "scripts": [
+        {
+          "when": {
+            "type": "start"
+          },
+          "blocks": [
+            {
+              "type": "say",
+              "text": {
+                "s": "Fresh air! You are free... almost."
+              },
+              "who": "narrator"
+            }
+          ]
+        },
+        {
+          "when": {
+            "type": "tap",
+            "hotspot": "gate"
+          },
+          "blocks": [
+            {
+              "type": "end",
+              "text": {
+                "s": "You escaped! The End"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

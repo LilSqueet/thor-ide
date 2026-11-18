@@ -603,7 +603,8 @@ public class MainActivity extends Activity {
             if (r == Role.EDITOR) return "editor";
             return "none";
         }
-        @JavascriptInterface public boolean isDual() { return hasSecondScreen(); }
+        /** True only while both screens are running the app (RUN mode); in EDIT mode the other screen is the editor. */
+        @JavascriptInterface public boolean isDual() { return hasSecondScreen() && mode == Mode.RUN; }
         @JavascriptInterface public void send(String json) {
             ui.post(() -> {
                 Role r = (Role) self.getTag(R_ROLE);

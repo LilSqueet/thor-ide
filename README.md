@@ -20,24 +20,28 @@ Apps are plain HTML / CSS / JS. A project's `index.html` runs on the **top** scr
 Every later push rebuilds and replaces `ThorIDE.apk` on that same link. The app is signed with
 the committed keystore, so updates install over the old version without uninstalling.
 
-## Block games (no typing)
+## Adventures (no typing needed)
 
-A project that contains `game.json` opens in the **Blocks** view: a Construct-style event sheet
-you build entirely by tapping (or with the controller). Sprites live on the top or bottom screen,
-variables hold numbers, and events read `WHEN <trigger> AND <conditions> DO <actions>`.
-Values are picked from a keypad, a variable, a sprite property, a random range, the sticks,
-the touch position, or simple math on those. **Run** generates `index.html`, `bottom.html` and
-`engine.js` from `game.json`, so the result is still an ordinary dual-screen web page you can
-open in Code view. The `dodge` sample is a complete two-screen game.
+A project that contains `adventure.json` opens in the **Blocks** view, a Scratch-style editor for
+point-and-click adventure games:
 
-**Photos, GIFs and videos.** In Sprites, "+ Add sprite → photo / GIF / video…" opens the project's media
-or imports from the device (the Android file picker). Imported files are copied into the project's `media/`
-folder, so projects stay self-contained. GIFs animate and videos loop muted; the "Play video from start" and
-"Pause video" actions control them, and "Set photo / video" swaps a sprite's picture at runtime.
+- **Scenes** have a background (a colour or a photo) and *things* in them (a door, a person, a key)
+  that the player taps. Drag things around in the preview; make them hidden at start if they
+  should appear later.
+- **Blocks** are scripts attached to a scene: *when scene starts*, *when [thing] is tapped*,
+  *when [item] is used on [thing]*, *when button [A] is pressed*. Blocks include **say**
+  (speech bubble + dialog box), **show picture**, **ask** (choices with their own branches),
+  **if / else**, **wait**, **go to scene**, **show / hide / move** a thing, **set / change** a
+  variable, **give / take** an item, **beep**, **end game**.
+- **Variables** remember numbers; **Items** are the player's inventory.
+
+On the Thor the top screen is the scene and the bottom screen is the dialog box, the choices and
+the inventory, like a DS adventure game. Run generates `index.html`, `bottom.html` and `adventure.js`.
+Text is typed on a built-in keyboard inside the editor, so it works on either screen.
 
 Controller in the editor: D-pad / left stick moves the focus ring, **A** selects, **B** goes back,
-**L1 / R1** switch panels (or file tabs), **START** runs, **SELECT** toggles Blocks / Code, **Y** toggles the on-screen keyboard.
-In games: A B X Y, L1 R1 L2 R2, D-pad, START, SELECT and both sticks are available as triggers / values.
+**L1 / R1** switch panels, **START** runs, **SELECT** toggles Blocks / Code.
+In the game: D-pad moves between things, **A** taps / continues dialog, **L1 / R1** pick an item.
 
 ## Using it
 
@@ -78,8 +82,8 @@ Source layout:
 - `app/src/main/java/dev/thor/ide/MainActivity.java` – screens, roles, JS bridges
 - `app/src/main/java/dev/thor/ide/ProjectStore.java` – project/file storage
 - `app/src/main/assets/editor/index.html` – the editor UI (code view, tabs, console)
-- `app/src/main/assets/editor/blocks.js` – the block / event-sheet editor
+- `app/src/main/assets/editor/adv.js` – the Scratch-style adventure editor
 - `app/src/main/assets/editor/nav.js` – controller navigation of the editor
-- `app/src/main/assets/engine/engine.js` – runtime for block games (sprites, events, touch, controller, two-screen sync)
+- `app/src/main/assets/engine/adventure.js` – adventure runtime (scenes, dialog, choices, inventory, two-screen sync)
 - `tools/build-simulator.py` → `sim/thor-ide-simulator.html` – browser simulator of the whole thing
 - `app/src/main/assets/templates/` – new-project templates
