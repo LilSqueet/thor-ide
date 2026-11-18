@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #0f1a24; color: #e8f0f7; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  #ball { width: 60px; height: 60px; border-radius: 50%; background: #3dd6c6; transition: transform .15s; }
+  h2 { font-weight: 400; color: #9fb3c8; }
+</style>
+</head>
+<body>
+  <h2>TOP screen — index.html</h2>
+  <div id="ball"></div>
+  <p id="info">Waiting for the bottom screen…</p>
+  <script src="thor.js"></script>
+  <script>
+    const ball = document.getElementById('ball');
+    const info = document.getElementById('info');
+    let x = 0, y = 0;
+
+    // Messages from bottom.html arrive here.
+    Thor.on((m) => {
+      if (m.type === 'move') { x += m.dx * 20; y += m.dy * 20; ball.style.transform = `translate(${x}px, ${y}px)`; }
+      if (m.type === 'color') ball.style.background = m.color;
+      info.textContent = 'last message: ' + JSON.stringify(m);
+      console.log('top got', m);
+    });
+
+    // Tell the bottom screen we're alive.
+    setTimeout(() => Thor.send({ type: 'hello', from: 'top' }), 300);
+  </script>
+</body>
+</html>

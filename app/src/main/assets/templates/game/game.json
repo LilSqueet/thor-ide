@@ -1,0 +1,342 @@
+{
+  "sprites": [
+    {
+      "id": "player",
+      "shape": "rect",
+      "x": 960,
+      "y": 960,
+      "w": 120,
+      "h": 40,
+      "color": "#3dd6c6",
+      "screen": "top",
+      "visible": true,
+      "text": "",
+      "size": 48
+    },
+    {
+      "id": "rock",
+      "shape": "circle",
+      "x": 600,
+      "y": -50,
+      "w": 70,
+      "h": 70,
+      "color": "#ff6b6b",
+      "screen": "top",
+      "visible": true,
+      "text": "",
+      "size": 48
+    },
+    {
+      "id": "title",
+      "shape": "text",
+      "x": 960,
+      "y": 120,
+      "w": 800,
+      "h": 100,
+      "color": "#ffffff",
+      "screen": "top",
+      "visible": true,
+      "text": "DODGE  -  D-pad / stick / tap to move",
+      "size": 56
+    },
+    {
+      "id": "scoreText",
+      "shape": "text",
+      "x": 620,
+      "y": 300,
+      "w": 800,
+      "h": 100,
+      "color": "#f5b942",
+      "screen": "bottom",
+      "visible": true,
+      "text": "Score: 0",
+      "size": 96
+    },
+    {
+      "id": "slowBtn",
+      "shape": "rect",
+      "x": 620,
+      "y": 720,
+      "w": 500,
+      "h": 180,
+      "color": "#c792ea",
+      "screen": "bottom",
+      "visible": true,
+      "text": "SLOW-MO (or press A)",
+      "size": 48
+    }
+  ],
+  "vars": {
+    "score": 0,
+    "speed": 400
+  },
+  "background": {
+    "top": "#101418",
+    "bottom": "#1a1410"
+  },
+  "events": [
+    {
+      "when": {
+        "type": "start",
+        "id": 1
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "set",
+          "sprite": "rock",
+          "prop": "vy",
+          "value": {
+            "v": "speed"
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "button",
+        "id": 2,
+        "button": "LEFT",
+        "phase": "held"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "move",
+          "sprite": "player",
+          "dx": {
+            "n": -14
+          },
+          "dy": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "button",
+        "id": 3,
+        "button": "RIGHT",
+        "phase": "held"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "move",
+          "sprite": "player",
+          "dx": {
+            "n": 14
+          },
+          "dy": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "frame",
+        "id": 4
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "move",
+          "sprite": "player",
+          "dx": {
+            "op": "*",
+            "a": {
+              "stick": "lx"
+            },
+            "b": {
+              "n": 14
+            }
+          },
+          "dy": {
+            "n": 0
+          }
+        },
+        {
+          "type": "keepOnScreen",
+          "sprite": "player"
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "tap",
+        "id": 5,
+        "target": "top"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "moveto",
+          "sprite": "player",
+          "x": {
+            "touchx": 1
+          },
+          "y": {
+            "n": 960
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "every",
+        "id": 6,
+        "seconds": {
+          "n": 1
+        }
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "var_change",
+          "name": "score",
+          "value": {
+            "n": 1
+          }
+        },
+        {
+          "type": "say",
+          "sprite": "scoreText",
+          "text": {
+            "op": "+",
+            "a": {
+              "s": "Score: "
+            },
+            "b": {
+              "v": "score"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "offscreen",
+        "id": 7,
+        "sprite": "rock"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "var_change",
+          "name": "speed",
+          "value": {
+            "n": 25
+          }
+        },
+        {
+          "type": "moveto",
+          "sprite": "rock",
+          "x": {
+            "rnd": [
+              100,
+              1820
+            ]
+          },
+          "y": {
+            "n": -50
+          }
+        },
+        {
+          "type": "set",
+          "sprite": "rock",
+          "prop": "vy",
+          "value": {
+            "v": "speed"
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "touching",
+        "id": 8,
+        "a": "player",
+        "b": "rock"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "beep",
+          "freq": {
+            "n": 120
+          },
+          "ms": {
+            "n": 300
+          }
+        },
+        {
+          "type": "say",
+          "sprite": "scoreText",
+          "text": {
+            "s": "Score: 0"
+          }
+        },
+        {
+          "type": "restart"
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "tap",
+        "id": 9,
+        "target": "slowBtn"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "set",
+          "sprite": "rock",
+          "prop": "vy",
+          "value": {
+            "n": 120
+          }
+        },
+        {
+          "type": "beep",
+          "freq": {
+            "n": 880
+          },
+          "ms": {
+            "n": 60
+          }
+        }
+      ]
+    },
+    {
+      "when": {
+        "type": "button",
+        "id": 10,
+        "button": "A",
+        "phase": "pressed"
+      },
+      "conds": [],
+      "do": [
+        {
+          "type": "set",
+          "sprite": "rock",
+          "prop": "vy",
+          "value": {
+            "n": 120
+          }
+        },
+        {
+          "type": "beep",
+          "freq": {
+            "n": 880
+          },
+          "ms": {
+            "n": 60
+          }
+        }
+      ]
+    }
+  ]
+}

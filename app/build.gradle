@@ -1,0 +1,58 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "dev.thor.ide"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "dev.thor.ide"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "0.1.0"
+    }
+
+    signingConfigs {
+        // Committed keystore so every CI build signs identically and updates install over
+        // each other. It's a hobby/sideload key, not a Play Store key.
+        thor {
+            storeFile file("../keystore/thor-ide.jks")
+            storePassword "thor-ide"
+            keyAlias "thor"
+            keyPassword "thor-ide"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.thor
+        }
+        debug {
+            signingConfig signingConfigs.thor
+        }
+    }
+
+    lint {
+        // Don't let lint's release gate block the CI build of a hobby app.
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "ThorIDE-${variant.versionName}-${variant.buildType.name}.apk"
+        }
+    }
+}
+
+dependencies {
+    // Intentionally none: the app uses only framework APIs (WebView, Presentation, DisplayManager).
+}

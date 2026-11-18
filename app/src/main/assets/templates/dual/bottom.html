@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; font-family: sans-serif; background: #1a1410; color: #f3e9dc; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; user-select: none; }
+  h2 { font-weight: 400; color: #c8b39f; margin: 0; }
+  .pad { display: grid; grid-template-columns: repeat(3, 70px); gap: 6px; }
+  .pad button, .colors button { height: 60px; font-size: 22px; border: 0; border-radius: 10px; background: #f5b942; color: #1a1410; }
+  .colors { display: flex; gap: 8px; }
+  .colors button { width: 60px; }
+</style>
+</head>
+<body>
+  <h2>BOTTOM screen — bottom.html</h2>
+  <div class="pad">
+    <span></span><button data-dx="0" data-dy="-1">▲</button><span></span>
+    <button data-dx="-1" data-dy="0">◀</button><span></span><button data-dx="1" data-dy="0">▶</button>
+    <span></span><button data-dx="0" data-dy="1">▼</button><span></span>
+  </div>
+  <div class="colors">
+    <button style="background:#3dd6c6" data-c="#3dd6c6"></button>
+    <button style="background:#ff6b6b" data-c="#ff6b6b"></button>
+    <button style="background:#c792ea" data-c="#c792ea"></button>
+  </div>
+  <p id="info">screen: <span id="scr"></span></p>
+  <script src="thor.js"></script>
+  <script>
+    document.getElementById('scr').textContent = Thor.screen() + (Thor.isDual() ? ' (dual)' : ' (single)');
+    document.querySelectorAll('.pad button').forEach(b => b.onclick = () => Thor.send({ type: 'move', dx: +b.dataset.dx, dy: +b.dataset.dy }));
+    document.querySelectorAll('.colors button').forEach(b => b.onclick = () => Thor.send({ type: 'color', color: b.dataset.c }));
+    Thor.on((m) => { console.log('bottom got', m); });
+  </script>
+</body>
+</html>
