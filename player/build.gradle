@@ -1,0 +1,43 @@
+plugins {
+    id "com.android.application"
+}
+
+// The "player": a tiny dual-screen runtime that shows assets/game/index.html on the top screen and
+// assets/game/bottom.html on the bottom one. Thor IDE bundles this APK and, when you tap
+// "Export as app", gives it a new package name + label, drops the game files into assets/game/
+// and signs it - all on the device. targetSdk stays 29 so the on-device v1 (JAR) signature is accepted.
+android {
+    namespace "dev.thor.player"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "dev.thor.player"
+        minSdk 26
+        targetSdk 29
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // unsigned on purpose: Thor IDE re-signs the exported copy
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { outputFileName = "player.apk" }
+    }
+}
+
+dependencies {}

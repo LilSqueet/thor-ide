@@ -67,12 +67,10 @@ public class ProjectStore {
         return deleteRecursive(new File(root, name));
     }
 
-    /** First launch: seed the sample projects so the IDE isn't empty. */
+    /** First launch (or everything deleted): start with one empty adventure so the IDE opens in the block editor. */
     public void ensureSamples(AssetManager assets) {
         if (listProjects().length() > 0) return;
-        createProject("my-adventure", "adventure", assets);
-        createProject("hello-dual", "dual", assets);
-        createProject("blank", "blank", assets);
+        createProject("my-game", "adventure-blank", assets);
     }
 
     // ------------------------------------------------------------ files

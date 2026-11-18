@@ -34,6 +34,8 @@ point-and-click adventure games:
   **if / else**, **wait**, **go to scene**, **show / hide / move** a thing, **set / change** a
   variable, **give / take** an item, **beep**, **end game**.
 - **Variables** remember numbers; **Items** are the player's inventory.
+- **My blocks** are reusable stacks (Scratch's custom blocks): build one once, then put a
+  **run [name]** block in any script.
 
 On the Thor the top screen is the scene and the bottom screen is the dialog box, the choices and
 the inventory, like a DS adventure game. Run generates `index.html`, `bottom.html` and `adventure.js`.
@@ -42,6 +44,15 @@ Text is typed on a built-in keyboard inside the editor, so it works on either sc
 Controller in the editor: D-pad / left stick moves the focus ring, **A** selects, **B** goes back,
 **L1 / R1** switch panels, **START** runs, **SELECT** toggles Blocks / Code.
 In the game: D-pad moves between things, **A** taps / continues dialog, **L1 / R1** pick an item.
+
+### Export as app
+
+Project menu (⋮) → **Export as app (APK)** turns the current game into its own installable APK,
+on the Thor itself: the IDE bundles a small "player" runtime (`player/`), gives it a unique package
+name and your app name by patching the binary manifest, drops the project files into `assets/game/`,
+JAR-signs it with the bundled hobby key (`ApkExporter.java`, pure Java) and hands it to Android's
+installer. A copy also lands in `Download/ThorGames/`. The first export asks you to allow Thor IDE
+to install apps. Each exported game gets its own icon and runs on both screens without the IDE.
 
 ## Using it
 

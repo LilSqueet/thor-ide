@@ -115,6 +115,7 @@
       await runBlock(b);
     }
   }
+  let depth = 0;
   async function runBlock(b) {
     switch (b.type) {
       case 'say': {
@@ -143,6 +144,7 @@
       case 'beep': beep(+evalValue(b.freq) || 440, +evalValue(b.ms) || 120); break;
       case 'end': S.ended = String(evalValue(b.text) || 'The End'); render(); break;
       case 'restart': restart(); break;
+      case 'call': { const fn = (G.functions || []).find(f => f.id === b.fn); if (fn && depth < 32) { depth++; try { await runBlocks(fn.blocks || []); } finally { depth--; } } break; }
     }
   }
   function findHotspot(id) { const h = scene().hotspots.find(h => h.id === id); return h ? { h, k: key(h) } : null; }
@@ -225,6 +227,7 @@
     if (!m || !m.__adv) return;
     if (isTop) {
       if (m.__adv === 'button') button(m.name, m.down);
+      else if (m.__adv === 'hello') render();
       else if (m.__adv === 'advance') advance();
       else if (m.__adv === 'choose') choose(m.i);
       else if (m.__adv === 'select') selectItem(m.id);
@@ -307,4 +310,5 @@
   window.Thor = { state: S, game: G, restart, trigger, button: (n) => button(n, true) };
   render();
   if (isTop) setTimeout(() => trigger({ type: 'start' }), 100);
+  else send({ __adv: 'hello' }); // ask the top screen for its current state (we may have loaded after it)
 })();

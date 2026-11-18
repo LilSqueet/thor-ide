@@ -21,6 +21,7 @@
     vars:    { name: 'Variables', color: '#ff8c1a' },
     items:   { name: 'Items',     color: '#59c059' },
     sound:   { name: 'Sound',     color: '#cf63cf' },
+    fns:     { name: 'My blocks', color: '#ff6680' },
   };
   const BLOCKS = {
     say:         { cat: 'looks',   tpl: ['say', ['text', 'text'], 'from', ['who', 'who']] },
@@ -41,6 +42,7 @@
     give:        { cat: 'items',   tpl: ['give item', ['item', 'item']] },
     take:        { cat: 'items',   tpl: ['take away item', ['item', 'item']] },
     beep:        { cat: 'sound',   tpl: ['beep', ['freq', 'value'], 'Hz for', ['ms', 'value'], 'ms'] },
+    call:        { cat: 'fns',     tpl: ['run', ['fn', 'fn']] },
   };
   const TRIGGERS = {
     start:  { label: 'when scene starts', params: [] },
@@ -68,13 +70,13 @@
     project = proj;
     try { game = JSON.parse(json); } catch (e) { game = null; }
     if (!game || !game.scenes) game = newGame();
-    game.vars = game.vars || {}; game.items = game.items || []; game.globalScripts = game.globalScripts || [];
+    game.vars = game.vars || {}; game.items = game.items || []; game.globalScripts = game.globalScripts || []; game.functions = game.functions || [];
     for (const sc of game.scenes) { sc.hotspots = sc.hotspots || []; sc.scripts = sc.scripts || []; sc.background = sc.background || { color: '#2b3a4a', image: '' }; }
     if (!game.scenes.find(s => s.id === curScene)) curScene = game.start || (game.scenes[0] && game.scenes[0].id);
     render();
   };
   function newGame() {
-    return { start: 'start', vars: {}, items: [], globalScripts: [], scenes: [{ id: 'start', name: 'Start', background: { color: '#2b3a4a', image: '' }, hotspots: [], scripts: [{ when: { type: 'start' }, blocks: [{ type: 'say', text: { s: 'Welcome to my adventure!' }, who: 'narrator' }] }] }] };
+    return { start: 'start', vars: {}, items: [], functions: [], globalScripts: [], scenes: [{ id: 'start', name: 'Start', background: { color: '#2b3a4a', image: '' }, hotspots: [], scripts: [{ when: { type: 'start' }, blocks: [{ type: 'say', text: { s: 'Welcome to my adventure!' }, who: 'narrator' }] }] }] };
   }
   function save() { clearTimeout(dirtyTimer); dirtyTimer = setTimeout(() => H() && H().save('adventure.json', JSON.stringify(game, null, 2)), 400); }
   const sceneObj = () => game.scenes.find(s => s.id === curScene) || game.scenes[0];
@@ -82,6 +84,8 @@
   const hotspotIds = () => (sceneObj() ? sceneObj().hotspots.map(h => h.id) : []);
   const varNames = () => Object.keys(game.vars);
   const itemIds = () => game.items.map(i => i.id);
+  const fnIds = () => game.functions.map(f => f.id);
+  const fnName = (id) => { const f = game.functions.find(f => f.id === id); return f ? f.name || f.id : (id || '?'); };
   function uid(base, taken) { let i = 1, id = base; while (taken.includes(id)) id = base + (++i); return id; }
   const slug = (s) => String(s).replace(/[^A-Za-z0-9_]/g, '').slice(0, 24);
 
@@ -103,13 +107,13 @@
   // ------------------------------------------------------------ rendering
   function render() {
     if (!game) return;
-    const tabs = [['scenes', 'Scenes'], ['blocks', 'Blocks'], ['vars', 'Variables'], ['items', 'Items']];
+    const tabs = [['scenes', 'Scenes'], ['blocks', 'Blocks'], ['fns', 'My blocks'], ['vars', 'Variables'], ['items', 'Items']];
     host.innerHTML = `<div class="bk-tabs">${tabs.map(([k, n]) => `<button class="bk-tab${panel === k ? ' on' : ''}" data-p="${k}">${n}</button>`).join('')}<span class="bk-hint">L1 / R1 switch tabs · D-pad moves · A selects · B back</span></div><div class="bk-body" id="bkBody"></div>`;
     host.querySelectorAll('.bk-tab').forEach(b => b.onclick = () => { panel = b.dataset.p; render(); });
     const body = host.querySelector('#bkBody');
-    ({ scenes: renderScenes, blocks: renderBlocks, vars: renderVars, items: renderItems })[panel](body);
+    ({ scenes: renderScenes, blocks: renderBlocks, fns: renderFns, vars: renderVars, items: renderItems })[panel](body);
   }
-  api.nextPanel = (d) => { const ps = ['scenes', 'blocks', 'vars', 'items']; panel = ps[(ps.indexOf(panel) + d + 4) % 4]; render(); };
+  api.nextPanel = (d) => { const ps = ['scenes', 'blocks', 'fns', 'vars', 'items']; panel = ps[(ps.indexOf(panel) + d + ps.length) % ps.length]; render(); };
 
   // ---- scene chooser row (shared by Scenes and Blocks panels)
   function sceneBar(body, extra) {
@@ -294,6 +298,7 @@
       case 'hotspot': return hotspotName(v);
       case 'scene': return sceneName(v);
       case 'item': return itemName(v);
+      case 'fn': return fnName(v);
       case 'media': return v ? String(v).replace(/^media\//, '') : '(pick photo)';
       case 'cond': return condText(v);
       default: return v == null || v === '' ? '…' : String(v);
@@ -353,6 +358,7 @@
       case 'media': return mediaPicker(set);
       case 'op': return pick('Compare', OPS.map(o => [o, o]), set);
       case 'button': return pick('Button', BUTTONS.map(b => [b, b]), set);
+      case 'fn': { const mk = () => askText('Name of the new block', 'open door', (n) => { if (!n) return; const id = uid(slug(n) || 'fn', fnIds()); game.functions.push({ id, name: n, blocks: [] }); set(id); }); if (!fnIds().length) return mk(); return pick('Which of my blocks?', [...game.functions.map(f => [f.id, f.name || f.id]), ['__new', '+ make a new one…']], (v) => v === '__new' ? mk() : set(v)); }
       case 'cond': return pick('Condition', Object.keys(CONDS).map(c => [c, CONDS[c].label]), (t) => { const c = { type: t }; if (t === 'var') c.op = '='; fillParams(c, CONDS[t].params, () => set(c)); });
     }
     done();
@@ -383,6 +389,28 @@
     }
     const add = document.createElement('button'); add.className = 'bk-add'; add.textContent = '+ new variable';
     add.onclick = () => askText('Variable name', 'score', (n) => { n = slug(n); if (n && !(n in game.vars)) { game.vars[n] = 0; save(); render(); } });
+    body.appendChild(add);
+  }
+  // ---- my blocks (functions): a named stack of blocks that any script can run
+  function renderFns(body) {
+    body.innerHTML = '';
+    const help = document.createElement('div'); help.className = 'bk-card bk-help'; help.innerHTML = 'Build something once here, then use the pink <b>run [name]</b> block in any script to do all of it. Handy for things that happen the same way in many places.'; body.appendChild(help);
+    for (const fn of game.functions) {
+      const wrap = document.createElement('div'); wrap.className = 'scr';
+      const hat = document.createElement('div'); hat.className = 'blk hat'; hat.style.background = CATS.fns.color; hat.style.color = '#fff';
+      hat.innerHTML = `<span>define</span><button class="chip chip-text">${esc(fn.name || fn.id)}</button><span class="bk-sp"></span><button class="blk-menu" title="menu">⋮</button>`;
+      hat.querySelector('.chip').onclick = () => askText('Block name', fn.name || fn.id, (n) => { if (n) { fn.name = n; save(); render(); } });
+      hat.querySelector('.blk-menu').onclick = () => showModal(`<h3>${esc(fn.name || fn.id)}</h3><div class="list"><button id="dup">Duplicate</button><button id="del" style="color:var(--err)">Delete</button></div><div class="row"><button id="cl">Cancel</button></div>`, () => {
+        $('cl').onclick = closeModal;
+        $('dup').onclick = () => { closeModal(); const c = JSON.parse(JSON.stringify(fn)); c.id = uid(fn.id, fnIds()); c.name = (fn.name || fn.id) + ' 2'; game.functions.push(c); save(); render(); };
+        $('del').onclick = () => { closeModal(); confirmModal('Delete "' + (fn.name || fn.id) + '"? Scripts that run it will do nothing.', () => { game.functions = game.functions.filter(f => f !== fn); save(); render(); }); };
+      });
+      wrap.appendChild(hat);
+      wrap.appendChild(renderStack(fn.blocks = fn.blocks || []));
+      body.appendChild(wrap);
+    }
+    const add = document.createElement('button'); add.className = 'bk-add'; add.textContent = '+ make a block';
+    add.onclick = () => askText('Name of the new block', 'open door', (n) => { if (!n) return; game.functions.push({ id: uid(slug(n) || 'fn', fnIds()), name: n, blocks: [] }); save(); render(); });
     body.appendChild(add);
   }
   // ---- items
@@ -425,6 +453,9 @@
   }
   function showModal(html, wire) { $('modalBox').innerHTML = html; $('modal').classList.add('on'); wire && wire(); setTimeout(() => { const f = $('modalBox').querySelector('input, button'); f && f.focus(); }, 0); }
   function closeModal() { $('modal').classList.remove('on'); }
+  api.askText = (t, v, cb) => askText(t, v, cb);
+  api.pick = (t, o, cb) => pick(t, o, cb);
+  api.confirm = (m, cb) => confirmModal(m, cb);
   api.closeModal = () => { if ($('modal').classList.contains('on')) { closeModal(); return true; } return false; };
   function pick(title, options, cb) {
     showModal(`<h3>${esc(title)}</h3><div class="list bk-picklist">${options.map(([v, l]) => `<button data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div><div class="row"><button id="cl">Cancel</button></div>`, () => {
@@ -447,7 +478,7 @@
   const SYM = { '1': '!', '2': '?', '3': '"', '4': ':', '5': ';', '6': '(', '7': ')', '8': '-', '9': '&', '0': '…', ',': '<', '.': '>' };
   function askText(title, value, cb) {
     let shift = false, sym = false;
-    showModal(`<h3>${esc(title)}</h3><input id="av" autocomplete="off"><div class="tk" id="tk"></div><div class="row"><button id="ok" class="acc">OK</button><button id="cl">Cancel</button></div>`, () => {
+    showModal(`<h3>${esc(title)}</h3><input id="av" autocomplete="off" inputmode="none"><div class="tk" id="tk"></div><div class="row"><button id="ok" class="acc">OK</button><button id="cl">Cancel</button></div>`, () => {
       const inp = $('av'); inp.value = value || ''; inp.focus(); inp.select();
       const kb = $('tk');
       const build = () => {

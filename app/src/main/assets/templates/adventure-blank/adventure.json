@@ -1,0 +1,16 @@
+{
+  "start": "scene1",
+  "vars": {},
+  "items": [],
+  "functions": [],
+  "globalScripts": [],
+  "scenes": [
+    {
+      "id": "scene1",
+      "name": "Scene 1",
+      "background": { "color": "#2b3a4a", "image": "" },
+      "hotspots": [],
+      "scripts": []
+    }
+  ]
+}

@@ -27,8 +27,27 @@ jobs:
         with:
           gradle-version: "8.14.3"
 
+      # 1. The game "player" (standalone runtime) - Thor IDE bundles it and turns it into a new
+      #    APK per exported game, on the device.
+      - name: Build game player
+        run: gradle --no-daemon :player:assembleRelease
+
+      # 2. Signing material for on-device exports, taken from the same committed hobby keystore.
+      - name: Bundle player + signing key into the IDE
+        run: |
+          mkdir -p app/src/main/assets/signing
+          cp player/build/outputs/apk/release/player.apk app/src/main/assets/player.apk
+          keytool -importkeystore -srckeystore keystore/thor-ide.jks -srcstorepass thor-ide -srcalias thor \
+            -destkeystore /tmp/k.p12 -deststoretype PKCS12 -deststorepass thor-ide -noprompt
+          openssl pkcs12 -in /tmp/k.p12 -passin pass:thor-ide -nocerts -nodes -out /tmp/key.pem
+          openssl pkcs8 -topk8 -nocrypt -in /tmp/key.pem -outform DER -out app/src/main/assets/signing/key.pk8
+          openssl pkcs12 -in /tmp/k.p12 -passin pass:thor-ide -nokeys -out /tmp/cert.pem
+          openssl x509 -in /tmp/cert.pem -outform DER -out app/src/main/assets/signing/cert.der
+          ls -la app/src/main/assets/player.apk app/src/main/assets/signing
+
+      # 3. The IDE itself.
       - name: Build release APK
-        run: gradle --no-daemon assembleRelease
+        run: gradle --no-daemon :app:assembleRelease
 
       - name: Collect APK
         run: |

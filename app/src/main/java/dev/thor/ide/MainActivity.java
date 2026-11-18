@@ -501,6 +501,67 @@ public class MainActivity extends Activity {
         return w;
     }
 
+    // ------------------------------------------------------------------ export as a standalone app
+
+    File exportsDir() { File d = new File(getExternalFilesDir(null), "exports"); if (!d.exists()) d.mkdirs(); return d; }
+
+    private byte[] assetBytes(String path) {
+        try (java.io.InputStream in = getAssets().open(path)) { return ApkExporter.readAll(in); }
+        catch (Exception e) { return new byte[0]; }
+    }
+
+    void exportProject(String project, String label) {
+        new Thread(() -> {
+            JSONObject o = new JSONObject();
+            try {
+                byte[] tpl = assetBytes("player.apk"), key = assetBytes("signing/key.pk8"), cert = assetBytes("signing/cert.der");
+                if (tpl.length == 0 || key.length == 0 || cert.length == 0)
+                    throw new java.io.IOException("this build has no game player / signing key bundled");
+                String slug = ApkExporter.slug(project);
+                String name = (label == null || label.trim().isEmpty()) ? project : label.trim();
+                File out = new File(exportsDir(), slug + ".apk");
+                ApkExporter.export(tpl, ApkExporter.collectProject(new File(store.root(), project)), "dev.thor.game." + slug, name, key, cert, out);
+                o.put("ok", true); o.put("path", out.getName()); o.put("size", out.length());
+                o.put("downloads", copyToDownloads(out, slug + ".apk"));
+            } catch (Exception e) {
+                try { o.put("ok", false); o.put("error", String.valueOf(e.getMessage() == null ? e : e.getMessage())); } catch (Exception ignored) {}
+            }
+            ui.post(() -> evalOnEditor("window.ThorEvents && ThorEvents.emit('exported', " + o + ")"));
+        }).start();
+    }
+
+    /** Also drops a copy in Download/ThorGames so it can be found with a file manager / USB. */
+    private String copyToDownloads(File f, String name) {
+        try {
+            android.content.ContentResolver cr = getContentResolver();
+            String rel = android.os.Environment.DIRECTORY_DOWNLOADS + "/ThorGames/";
+            Uri coll = android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+            try { cr.delete(coll, android.provider.MediaStore.MediaColumns.DISPLAY_NAME + "=? AND " + android.provider.MediaStore.MediaColumns.RELATIVE_PATH + "=?", new String[]{name, rel}); } catch (Exception ignored) {}
+            android.content.ContentValues v = new android.content.ContentValues();
+            v.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name);
+            v.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive");
+            v.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, rel);
+            Uri uri = cr.insert(coll, v);
+            if (uri == null) return "";
+            try (java.io.OutputStream out = cr.openOutputStream(uri); java.io.InputStream in = new java.io.FileInputStream(f)) {
+                byte[] buf = new byte[65536]; int r;
+                while ((r = in.read(buf)) > 0) out.write(buf, 0, r);
+            }
+            return rel + name;
+        } catch (Exception e) { return ""; }
+    }
+
+    void installExported(String name) {
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.parse("content://" + ExportProvider.AUTHORITY + "/" + Uri.encode(name)), "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            android.widget.Toast.makeText(this, "Could not open the installer: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
     // ------------------------------------------------------------------ JS bridge: IDE API (used by the editor)
 
     public class IdeBridge {
@@ -547,6 +608,16 @@ public class MainActivity extends Activity {
                 while ((r = in.read(buf)) > 0) bo.write(buf, 0, r);
                 return new String(bo.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
             } catch (Exception e) { return ""; }
+        }
+
+        /** Builds an installable APK of a project (background). Result arrives as ThorEvents 'exported'. */
+        @JavascriptInterface public void exportApk(String project, String label) { exportProject(project, label); }
+        /** Hands an exported APK (file name from 'exported'.path) to the Android package installer. */
+        @JavascriptInterface public void installApk(String name) { ui.post(() -> installExported(name)); }
+        /** True when this build bundles the game player + signing key. */
+        @JavascriptInterface public boolean canExport() {
+            try { getAssets().open("player.apk").close(); getAssets().open("signing/key.pk8").close(); return true; }
+            catch (Exception e) { return false; }
         }
 
         /** Reload the preview (index.html) on the other screen. */

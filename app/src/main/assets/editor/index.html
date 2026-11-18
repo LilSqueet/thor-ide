@@ -19,6 +19,7 @@
   button:active { background: var(--line); }
   button.acc { background: var(--acc); color: #0b0f14; border-color: var(--acc); font-weight: 600; }
   button.warn { background: var(--warn); color: #0b0f14; border-color: var(--warn); font-weight: 600; }
+  #project { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
   select { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; font: inherit; max-width: 36vw; }
 
   #topbar { display: flex; gap: 5px; align-items: center; padding: 5px 6px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
@@ -171,7 +172,7 @@
 <body>
 
 <div id="topbar">
-  <select id="project" title="Project"></select>
+  <button id="project" title="Switch project">…</button>
   <button id="btnProjMenu" title="Project actions">&#8942;</button>
   <button id="btnRun" class="acc" title="Reload preview on the other screen">&#9654; Run</button>
   <button id="btnRunDual" class="warn" title="Run index.html on top + bottom.html on bottom">&#9654;&#9654; Dual</button>
@@ -236,6 +237,9 @@ const Native = {
   readAsset:    (p) => N ? N.readAsset(p) : (window.__ASSETS__ && window.__ASSETS__[p]) || '',
   importMedia:  () => N ? N.importMedia() : log('info', 'editor', '(desktop test) import not available'),
   fileUrl:      (p, f) => N ? N.fileUrl(p, f) : '',
+  canExport:    () => !!(N && N.canExport && N.canExport()),
+  exportApk:    (p, label) => N && N.exportApk(p, label),
+  installApk:   (name) => N && N.installApk(name),
 };
 function mem(p) { return JSON.parse(localStorage['__f_' + p] || '{}'); }
 
@@ -246,6 +250,7 @@ window.ThorEvents = {
     else if (name === 'evalResult') log('info', 'eval', payload);
     else if (name === 'screens') updateScreens(payload);
     else if (name === 'back') { if (modalOpen()) closeModal(); }
+    else if (name === 'exported') onExported(payload);
     else if (name === 'imported') {
       if (!payload.ok) { Native.toast('Import failed'); return; }
       files = Native.listFiles(project).map(f => f.path);
@@ -267,12 +272,19 @@ function setStatus(t, cls) { const s = $('status'); s.textContent = t; s.classNa
 
 /* ---------------- projects */
 function loadProjects() {
-  const sel = $('project'); sel.innerHTML = '';
   const list = Native.listProjects();
-  for (const p of list) { const o = document.createElement('option'); o.value = o.textContent = p; sel.appendChild(o); }
   project = Native.current() || list[0] || null;
-  if (project) sel.value = project;
+  if (project && !list.includes(project)) project = list[0] || null;
+  $('project').textContent = project || '(no project)';
   loadFiles();
+}
+/* the project list is a tap-list, not a <select>: WebView's native dropdown can't open on the bottom screen */
+function projectPicker() {
+  const list = Native.listProjects();
+  ThorBlocks.pick('Project', [...list.map(p => [p, (p === project ? '● ' : '') + p]), ['__new', '+ New project…']], (v) => {
+    if (v === '__new') newProjectDialog();
+    else if (v !== project) { switchProject(v); $('project').textContent = v; }
+  });
 }
 function switchProject(p) {
   flushSave();
@@ -539,7 +551,7 @@ $('btnRun').onclick = doRun;
 $('btnRunDual').onclick = () => { flushSave(); if (!generateIfBlocks()) return; if (!files.includes('bottom.html')) { Native.toast('No bottom.html in this project'); return; } $('log').innerHTML = ''; Native.runDual(); };
 $('btnSave').onclick = flushSave;
 $('btnSwap').onclick = () => { flushSave(); Native.swap(); };
-$('project').onchange = (e) => switchProject(e.target.value);
+$('project').onclick = projectPicker;
 
 function updateScreens(s) {
   $('btnSwap').style.display = s.dual ? '' : 'none';
@@ -558,21 +570,15 @@ function confirmModal(msg, cb) {
     $('cl').onclick = closeModal; $('ok').onclick = () => { closeModal(); cb(); };
   });
 }
-function askModal(title, value, cb) {
-  showModal('<h3>' + esc(title) + '</h3><input id="av"><div class="row"><button id="ok" class="acc">OK</button><button id="cl">Cancel</button></div>', () => {
-    $('av').value = value || ''; $('av').focus(); $('av').select();
-    $('cl').onclick = closeModal; $('ok').onclick = () => { const v = $('av').value.trim(); closeModal(); cb(v); };
-    $('av').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('ok').onclick(); });
-  });
-}
+function askModal(title, value, cb) { ThorBlocks.askText(title, value, cb); }
 
 function filesDialog() {
   const items = files.map(f => '<button data-f="' + esc(f) + '">' + esc(f) + (open.includes(f) ? ' <span class="muted">(open)</span>' : '') + '</button>').join('');
   showModal('<h3>Files in ' + esc(project) + '</h3><div class="list">' + items + '</div>'
-    + '<input id="nf" placeholder="new file name, e.g. app.js or css/style.css"><div class="row"><button id="mk" class="acc">Create</button><button id="cl">Close</button></div>', () => {
+    + '<div class="row"><button id="mk" class="acc">New file…</button><button id="cl">Close</button></div>', () => {
     document.querySelectorAll('#modal .list button').forEach(b => b.onclick = () => { closeModal(); showFile(b.dataset.f); });
-    $('mk').onclick = () => { const n = $('nf').value.trim(); if (!n) return; if (!files.includes(n)) { Native.write(project, n, ''); files.push(n); files.sort(); } closeModal(); showFile(n); };
-    $('cl').onclick = closeModal; $('nf').focus();
+    $('mk').onclick = () => { closeModal(); askModal('New file name (e.g. app.js)', '', (n) => { if (!n) return; if (!files.includes(n)) { Native.write(project, n, ''); files.push(n); files.sort(); } showFile(n); }); };
+    $('cl').onclick = closeModal;
   });
 }
 function fileMenu(f) {
@@ -584,20 +590,47 @@ function fileMenu(f) {
   });
 }
 $('btnProjMenu').onclick = () => {
-  showModal('<h3>Project</h3><div class="list"><button id="np">New project…</button><button id="dp" style="color:var(--err)">Delete "' + esc(project) + '"</button></div>'
+  const canExport = Native.canExport();
+  showModal('<h3>Project: ' + esc(project || '') + '</h3><div class="list"><button id="np">New project…</button><button id="sw">Switch project…</button>'
+    + (canExport ? '<button id="ex" class="acc">Export as app (APK)…</button>' : '')
+    + '<button id="dp" style="color:var(--err)">Delete "' + esc(project) + '"</button></div>'
     + '<p class="muted">Projects folder:<br>' + esc(Native.projectsDir()) + '</p><div class="row"><button id="cl">Close</button></div>', () => {
     $('cl').onclick = closeModal;
-    $('np').onclick = newProjectDialog;
+    $('np').onclick = () => { closeModal(); newProjectDialog(); };
+    $('sw').onclick = () => { closeModal(); projectPicker(); };
+    if (canExport) $('ex').onclick = () => { closeModal(); exportDialog(); };
     $('dp').onclick = () => confirmModal('Delete project "' + project + '" and all its files?', () => { Native.deleteProject(project); loadProjects(); });
   });
 };
+const TEMPLATES = [['adventure-blank', 'Adventure – empty (point & click, no typing needed)'], ['adventure', 'Adventure – example "The Room"'], ['dual', 'Dual-screen web app (index.html + bottom.html)'], ['blank', 'Blank single page']];
 function newProjectDialog() {
-  showModal('<h3>New project</h3><input id="pn" placeholder="name (letters, digits, - _ .)"><select id="pt"><option value="adventure">Point-and-click adventure (blocks, no typing needed)</option><option value="dual">Dual-screen web app (index.html + bottom.html)</option><option value="blank">Blank single page</option></select>'
-    + '<div class="row"><button id="ok" class="acc">Create</button><button id="cl">Cancel</button></div>', () => {
-    $('cl').onclick = closeModal; $('pn').focus();
-    $('ok').onclick = () => { const n = $('pn').value.trim(); if (!/^[A-Za-z0-9._-]{1,64}$/.test(n)) { Native.toast('Invalid name'); return; }
-      if (!Native.createProject(n, $('pt').value)) { Native.toast('Could not create (name taken?)'); return; }
-      closeModal(); flushSave(); loadProjects(); switchProject(n); $('project').value = n; };
+  askModal('Project name', '', (n) => {
+    n = (n || '').trim().replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64);
+    if (!n) return;
+    if (Native.listProjects().includes(n)) { Native.toast('There is already a project called ' + n); return; }
+    ThorBlocks.pick('What kind of project?', TEMPLATES, (t) => {
+      if (!Native.createProject(n, t)) { Native.toast('Could not create the project'); return; }
+      flushSave(); loadProjects(); switchProject(n); $('project').textContent = n;
+    });
+  });
+}
+/* ---------------- export as a standalone app */
+function exportDialog() {
+  if (!files.includes('adventure.json') && !files.includes('index.html')) { Native.toast('Nothing to export yet'); return; }
+  askModal('App name (shown on the home screen)', project, (label) => {
+    if (!label) return;
+    flushSave(); if (!generateIfBlocks()) return;
+    showModal('<h3>Building ' + esc(label) + '…</h3><p class="muted">Packing the game into an APK and signing it. A few seconds.</p>');
+    Native.exportApk(project, label);
+  });
+}
+function onExported(r) {
+  if (!r.ok) { showModal('<h3>Export failed</h3><p class="muted">' + esc(String(r.error || 'unknown error')) + '</p><div class="row"><button id="cl">Close</button></div>', () => $('cl').onclick = closeModal); return; }
+  showModal('<h3>App ready</h3><p class="muted">' + esc(r.path) + ' (' + Math.round((r.size || 0) / 1024) + ' KB)' + (r.downloads ? '<br>Also saved to ' + esc(r.downloads) : '') + '</p>'
+    + '<p class="muted">Tap Install. The first time, Android asks you to allow Thor IDE to install apps — allow it, then come back and tap Install again.</p>'
+    + '<div class="row"><button id="inst" class="acc">Install</button><button id="cl">Later</button></div>', () => {
+    $('cl').onclick = closeModal;
+    $('inst').onclick = () => { Native.installApk(r.path); };
   });
 }
 $('btnMore').onclick = () => {
@@ -610,7 +643,7 @@ $('btnMore').onclick = () => {
   });
 };
 const HELP = `<h3>Dual-screen apps</h3><p class="muted" style="font-size:12px;line-height:1.5">
-<b>Adventures</b> (projects with adventure.json) are built in the Blocks view: scenes with things to tap, Scratch-style blocks (say, show picture, ask, if, go to scene, give item…), variables and items. Run generates index.html, bottom.html and adventure.js. Top screen = the scene, bottom screen = dialog, choices and inventory. Controller: D-pad moves the focus, A selects, B back, L1/R1 switch panels, START runs, SELECT toggles Blocks/Code.<br><br>
+<b>Adventures</b> (projects with adventure.json) are built in the Blocks view: scenes with things to tap, Scratch-style blocks (say, show picture, ask, if, go to scene, give item…), variables and items. Run generates index.html, bottom.html and adventure.js. Top screen = the scene, bottom screen = dialog, choices and inventory. Controller: D-pad moves the focus, A selects, B back, L1/R1 switch panels, START runs, SELECT toggles Blocks/Code.<br><br><b>My blocks</b> are reusable stacks: build one once, then use the <b>run [name]</b> block anywhere.<br><b>Export as app</b> (project menu ⋮) packs a finished game into its own APK and installs it, so each game gets its own icon on the Thor.<br><br>
 A project is plain HTML/CSS/JS. <b>index.html</b> runs on the top screen, <b>bottom.html</b> on the bottom screen.<br><br>
 <b>Run</b> reloads index.html on the other screen while you keep editing.<br>
 <b>Dual</b> runs both pages full-screen; press the floating "Editor" button or Back to return.<br><br>
